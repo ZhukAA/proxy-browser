@@ -1,13 +1,14 @@
 {
   "name": "cloud-proxy-browser",
   "version": "1.0.0",
-  "description": "Cloud Proxy Browser Android App",
+  "description": "Cloud Proxy Audio & Reader",
   "private": true,
   "dependencies": {
     "@capacitor/android": "^6.0.0",
     "@capacitor/core": "^6.0.0"
   },
   "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
     "@capacitor/cli": "^6.0.0"
   }
 }
