@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <title>Cloud Proxy Browser</title>
+  <title>Cloud Proxy Reader & Audio</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html, body {
@@ -22,7 +22,6 @@
     button { cursor: pointer; border: none; background: none; }
     .hidden { display: none !important; }
 
-    /* Тёмная полоса прокрутки */
     * { scrollbar-width: thin; scrollbar-color: #334155 #020617; }
     ::-webkit-scrollbar { width: 6px; height: 6px; }
     ::-webkit-scrollbar-track { background: #020617; }
@@ -58,6 +57,7 @@
       font-weight: 500; padding: 10px; border-radius: 8px; font-size: 14px;
     }
     .btn-primary:hover { background: #3b82f6; }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
     .btn-secondary {
       width: 100%; background: #1e293b; color: #e2e8f0;
       border: 1px solid #334155; font-weight: 500; padding: 10px;
@@ -103,7 +103,7 @@
       .desktop-only { display: none !important; }
     }
 
-    /* Левая панель: Сайты и Прокси */
+    /* Левая панель */
     .sidebar-top { display: flex; flex-direction: column; gap: 10px; overflow: hidden; flex: 1; }
     .sidebar-header { display: flex; align-items: center; justify-content: space-between; }
     .brand-title { font-size: 16px; font-weight: 700; color: #60a5fa; }
@@ -162,46 +162,37 @@
       padding-top: 6px; border-top: 1px solid rgba(30,41,59,0.8); color: #94a3b8;
     }
 
-    /* Центральная область браузера */
+    /* Центральная область без адресной строки */
     .main-area {
       flex: 1; display: flex; flex-direction: column;
       height: 100%; width: 100%; max-width: 100%; min-width: 0;
       background: #020617; overflow: hidden;
     }
 
-    /* Панель навигации браузера */
-    .browser-toolbar {
-      min-height: 54px;
+    .top-bar {
+      min-height: 52px;
       border-bottom: 1px solid #1e293b;
       padding: calc(8px + env(safe-area-inset-top, 0px)) 12px 8px 12px;
-      display: flex; align-items: center; gap: 8px;
+      display: flex; align-items: center; justify-content: space-between; gap: 8px;
       background: #0f172a; flex-shrink: 0;
     }
+    .top-left { display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1; }
+    .top-titles { min-width: 0; flex: 1; }
+    #activePageTitle { font-size: 14.5px; font-weight: 600; color: #f8fafc; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    #activePageProgress { font-size: 11px; color: #60a5fa; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    .top-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
     .btn-nav {
       background: #1e293b; color: #e2e8f0;
       min-width: 36px; height: 36px; padding: 0 10px;
-      border-radius: 8px; font-size: 13px;
-      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+      border-radius: 8px; font-size: 12.5px; font-weight: 500;
+      display: flex; align-items: center; justify-content: center; gap: 5px; flex-shrink: 0;
     }
     .btn-nav:hover { background: #334155; }
+    .btn-nav.offline-ready { background: rgba(16,185,129,0.18); border: 1px solid rgba(16,185,129,0.45); color: #6ee7b7; }
+    .btn-nav:disabled { opacity: 0.5; cursor: not-allowed; }
 
-    .url-bar-form {
-      flex: 1; display: flex; align-items: center; gap: 6px; min-width: 0;
-    }
-    .proxy-pill {
-      background: rgba(16,185,129,0.15); border: 1px solid rgba(16,185,129,0.4);
-      color: #6ee7b7; font-size: 11px; padding: 0 10px; height: 36px;
-      border-radius: 8px; outline: none; max-width: 150px; flex-shrink: 0;
-    }
-    .url-input {
-      flex: 1; min-width: 0; height: 36px;
-      background: #020617; border: 1px solid #334155;
-      border-radius: 8px; padding: 0 12px; font-size: 13px; color: #f8fafc;
-      outline: none;
-    }
-    .url-input:focus { border-color: #3b82f6; }
-
-    /* Рабочая область iframe */
+    /* Рабочая область */
     .viewport-wrap {
       flex: 1; position: relative; width: 100%; height: 100%;
       background: #020617; overflow: hidden; display: flex; flex-direction: column;
@@ -214,13 +205,42 @@
       color: #94a3b8; font-size: 13.5px; line-height: 1.5;
     }
     .empty-viewport strong { color: #f1f5f9; display: block; font-size: 16px; margin-bottom: 8px; }
+
+    /* Встроенный офлайн-плеер аудиокниг */
+    #offlineReaderView {
+      flex: 1; overflow-y: auto; padding: 20px;
+      background: #020617; color: #e2e8f0;
+      display: flex; flex-direction: column; gap: 16px;
+      max-width: 820px; width: 100%; margin: 0 auto;
+    }
+    .offline-player-card {
+      background: #0f172a; border: 1px solid #1e293b; border-radius: 14px;
+      padding: 16px; display: flex; flex-direction: column; gap: 12px;
+      position: sticky; top: 0; z-index: 10;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.45);
+    }
+    .track-list { display: flex; flex-direction: column; gap: 6px; }
+    .track-item {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 12px; border-radius: 9px;
+      background: #0f172a; border: 1px solid #1e293b;
+      text-align: left; font-size: 13px; color: #cbd5e1;
+    }
+    .track-item.active {
+      background: rgba(37,99,235,0.2); border-color: rgba(59,130,246,0.6); color: #fff; font-weight: 600;
+    }
+    .offline-text-content {
+      background: #0f172a; border: 1px solid #1e293b; border-radius: 14px;
+      padding: 18px; font-size: 15px; line-height: 1.65; color: #cbd5e1;
+    }
+
     .status-strip {
       height: 24px; background: #0f172a; border-top: 1px solid #1e293b;
       padding: 0 12px; display: flex; align-items: center; justify-content: space-between;
       font-size: 11px; color: #64748b; flex-shrink: 0;
     }
 
-    /* Правая панель настроек закладки / прокси */
+    /* Правая панель настроек */
     .settings-head {
       display: flex; align-items: center; justify-content: space-between;
       border-bottom: 1px solid #1e293b; padding-bottom: 10px;
@@ -237,8 +257,8 @@
   <div id="authScreen">
     <div class="auth-card">
       <div>
-        <div class="auth-title">Cloud Proxy Browser</div>
-        <div class="auth-sub">Доступ к веб-ресурсам через ваши прокси-шлюзы</div>
+        <div class="auth-title">Proxy Audio & Reader</div>
+        <div class="auth-sub">Чтение, аудиокниги и офлайн-кэш через ваши прокси</div>
       </div>
 
       <form id="emailLoginForm" style="display:flex;flex-direction:column;gap:12px;">
@@ -261,27 +281,27 @@
 
   <div id="mobileBackdrop" class="hidden"></div>
 
-  <!-- ЛЕВАЯ ПАНЕЛЬ: ЗАКЛАДКИ САЙТОВ И СПИСОК ПРОКСИ -->
+  <!-- ЛЕВАЯ ПАНЕЛЬ -->
   <aside id="leftSidebar" class="sidebar-left">
     <div class="sidebar-top">
       <div class="sidebar-header">
         <div>
-          <div class="brand-title">Proxy Workspace</div>
+          <div class="brand-title">Proxy Library</div>
           <span id="syncStatus" class="sync-badge">● Облако подключено</span>
         </div>
         <button id="closeLeftBtn" class="btn-icon-close mobile-only" type="button">✕</button>
       </div>
 
       <div class="nav-tabs">
-        <button id="tabSitesBtn" class="nav-tab active" type="button">🌐 Сайты</button>
+        <button id="tabSitesBtn" class="nav-tab active" type="button">📚 Страницы</button>
         <button id="tabProxiesBtn" class="nav-tab" type="button">🛡️ Прокси</button>
       </div>
 
-      <!-- Секция сайтов -->
+      <!-- Секция страниц/книг -->
       <div id="sitesSection" style="display:flex;flex-direction:column;gap:8px;flex:1;overflow:hidden;">
         <div class="tab-header-row">
-          <span>СОХРАНЁННЫЕ СТРАНИЦЫ</span>
-          <button id="addSiteBtn" class="btn-sm-blue" type="button">+ Сайт</button>
+          <span>ВАШИ ЗАКЛАДКИ</span>
+          <button id="addSiteBtn" class="btn-sm-blue" type="button">+ Добавить</button>
         </div>
         <div id="sitesList" class="scroll-list"></div>
       </div>
@@ -298,7 +318,7 @@
 
     <div class="sidebar-footer">
       <div class="footer-row">
-        <button id="exportBtn" class="btn-footer" type="button">📋 Экспорт JSON</button>
+        <button id="exportBtn" class="btn-footer" type="button">📋 Экспорт</button>
         <label class="btn-footer" style="cursor:pointer;">
           Импорт
           <input type="file" id="importInput" accept=".json" class="hidden" />
@@ -311,42 +331,63 @@
     </div>
   </aside>
 
-  <!-- ЦЕНТРАЛЬНАЯ ОБЛАСТЬ -->
+  <!-- ЦЕНТРАЛЬНАЯ ОБЛАСТЬ (БЕЗ АДРЕСНОЙ СТРОКИ) -->
   <main class="main-area">
-    <header class="browser-toolbar">
-      <button id="toggleLeftBtn" class="btn-nav" type="button" title="Боковая панель">☰</button>
-      <button id="reloadBtn" class="btn-nav" type="button" title="Обновить страницу">↻</button>
+    <header class="top-bar">
+      <div class="top-left">
+        <button id="toggleLeftBtn" class="btn-nav" type="button" title="Меню">☰</button>
+        <div class="top-titles">
+          <div id="activePageTitle">Выберите страницу</div>
+          <div id="activePageProgress">Позиция не сохранена</div>
+        </div>
+      </div>
 
-      <form id="urlForm" class="url-bar-form">
-        <select id="activeProxySelect" class="proxy-pill" title="Активный прокси-сервер"></select>
-        <input type="text" id="urlInput" class="url-input" placeholder="https://example.com..." />
-        <button type="submit" class="btn-nav" style="background:#2563eb;color:#fff;font-weight:500;">Открыть</button>
-      </form>
-
-      <button id="openExternalBtn" class="btn-nav desktop-only" type="button" title="Открыть прокси-ссылку в новой вкладке браузера">↗</button>
-      <button id="toggleRightBtn" class="btn-nav" type="button" title="Настройки страницы">⚙️</button>
+      <div class="top-actions">
+        <button id="downloadOfflineBtn" class="btn-nav" type="button" title="Скачать страницу и аудио для прослушивания без интернета">
+          <span>💾</span>
+          <span class="desktop-only" id="downloadOfflineLabel">Скачать офлайн</span>
+        </button>
+        <button id="reloadBtn" class="btn-nav" type="button" title="Обновить">↻</button>
+        <button id="toggleRightBtn" class="btn-nav" type="button" title="Настройки страницы">⚙️</button>
+      </div>
     </header>
 
     <div class="viewport-wrap">
       <div id="emptyViewport" class="empty-viewport">
-        <strong>Выберите сайт слева или введите URL</strong>
-        Страница будет загружена через выбранный прокси-шлюз. Вы можете сохранять нужные разделы сайтов в закладки и привязывать к ним конкретный прокси.
+        <strong>Выберите книгу или страницу слева</strong>
+        Приложение автоматически запомнит место, на котором вы остановились (главу, секунду аудио и прокрутку), чтобы продолжить с того же момента.
       </div>
+
+      <!-- Онлайн-просмотр через прокси -->
       <iframe id="proxyFrame" class="hidden" sandbox="allow-forms allow-scripts allow-same-origin allow-popups allow-modals"></iframe>
+
+      <!-- Офлайн-проигрыватель скачанной страницы -->
+      <div id="offlineReaderView" class="hidden">
+        <div class="offline-player-card" id="offlineAudioBox">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <span id="offlineTrackTitle" style="font-weight:600;font-size:14px;color:#60a5fa;">Глава 1</span>
+            <span id="offlineBadge" style="font-size:11px;color:#34d399;">● Офлайн-режим</span>
+          </div>
+          <audio id="offlineAudioPlayer" controls style="width:100%;height:40px;"></audio>
+        </div>
+
+        <div id="offlineTracksList" class="track-list"></div>
+        <div id="offlineTextBody" class="offline-text-content"></div>
+      </div>
     </div>
 
     <div class="status-strip">
       <span id="statusRouteLabel" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Готов к работе</span>
-      <span id="statusModeLabel">Режим: Iframe Proxy</span>
+      <span id="statusModeLabel">Онлайн / Офлайн</span>
     </div>
   </main>
 
-  <!-- ПРАВАЯ ПАНЕЛЬ: РЕДАКТОР ЗАКЛАДКИ ИЛИ ПРОКСИ -->
+  <!-- ПРАВАЯ ПАНЕЛЬ НАСТРОЕК -->
   <aside id="rightSidebar" class="sidebar-right">
-    <!-- Настройки выбранного сайта -->
+    <!-- Настройки выбранной страницы -->
     <div id="siteSettingsBox" style="display:flex;flex-direction:column;gap:14px;">
       <div class="settings-head">
-        <span style="font-weight:600;font-size:14px;color:#e2e8f0;">Параметры страницы</span>
+        <span style="font-weight:600;font-size:14px;color:#e2e8f0;">Настройки страницы</span>
         <div style="display:flex;align-items:center;gap:10px;">
           <button id="deleteSiteBtn" type="button" style="font-size:12px;color:#f87171;">Удалить</button>
           <button id="closeRightBtn" class="btn-icon-close mobile-only" type="button">✕</button>
@@ -354,41 +395,43 @@
       </div>
 
       <div class="form-group">
-        <label class="form-label">Название в меню</label>
-        <input type="text" id="siteTitleInput" class="input-field" placeholder="Например: Документация API" />
+        <label class="form-label">Название</label>
+        <input type="text" id="siteTitleInput" class="input-field" placeholder="Например: Никогде - Нил Гейман" />
       </div>
 
       <div class="form-group">
-        <label class="form-label">Категория / Группа</label>
-        <input type="text" id="siteGroupInput" class="input-field" placeholder="Работа, Инструменты..." />
+        <label class="form-label">Категория</label>
+        <input type="text" id="siteGroupInput" class="input-field" placeholder="Аудиокниги, Статьи..." />
       </div>
 
       <div class="form-group">
-        <label class="form-label">Целевой URL страницы</label>
-        <input type="url" id="siteUrlInput" class="input-field" placeholder="https://..." />
+        <label class="form-label">URL страницы</label>
+        <input type="url" id="siteUrlInput" class="input-field" placeholder="https://knigavuhe.org/book/..." />
       </div>
 
       <div class="form-group">
-        <label class="form-label">Прокси для этой страницы</label>
+        <label class="form-label">Прокси-шлюз</label>
         <select id="siteProxySelect" class="input-field"></select>
       </div>
 
       <div class="form-group">
-        <label class="form-label">Способ открытия</label>
+        <label class="form-label">Режим открытия</label>
         <select id="siteOpenModeSelect" class="input-field">
-          <option value="iframe">Внутри окна приложения (Iframe)</option>
-          <option value="newtab">В новой вкладке браузера (если сайт блокирует iframe)</option>
+          <option value="auto">Авто (Офлайн если скачано, иначе Онлайн)</option>
+          <option value="online">Только Онлайн через прокси</option>
+          <option value="offline">Только Офлайн из памяти устройства</option>
         </select>
       </div>
 
-      <button id="applySiteBtn" type="button" class="btn-primary">Загрузить страницу</button>
+      <button id="applySiteBtn" type="button" class="btn-primary">Открыть / Применить</button>
+      <button id="clearOfflineCacheBtn" type="button" class="btn-secondary" style="color:#f87171;">🗑️ Удалить офлайн-копию из памяти</button>
 
       <div class="info-box">
-        Если сложный веб-сервис (SPA) отказывается корректно отрисовываться внутри окна приложения, переключите способ открытия на <b>«В новой вкладке браузера»</b> - адрес всё равно откроется через ваш прокси-шлюз.
+        <b>Память состояния:</b> приложение автоматически сохраняет текущую секунду аудио, главу и прокрутку в облако, чтобы вы могли продолжить с того же места.
       </div>
     </div>
 
-    <!-- Настройки выбранного прокси -->
+    <!-- Настройки прокси -->
     <div id="proxySettingsBox" class="hidden" style="display:flex;flex-direction:column;gap:14px;">
       <div class="settings-head">
         <span style="font-weight:600;font-size:14px;color:#e2e8f0;">Настройка прокси-шлюза</span>
@@ -397,18 +440,12 @@
 
       <div class="form-group">
         <label class="form-label">Название прокси</label>
-        <input type="text" id="proxyNameInput" class="input-field" placeholder="Cloudflare Worker EU" />
+        <input type="text" id="proxyNameInput" class="input-field" />
       </div>
 
       <div class="form-group">
         <label class="form-label">Шаблон URL прокси</label>
-        <input type="text" id="proxyTemplateInput" class="input-field" placeholder="https://your-worker.workers.dev/?url={url}" />
-      </div>
-
-      <div class="info-box">
-        Используйте плейсхолдер <code>{url}</code> в месте, куда нужно подставить закодированный адрес целевого сайта.<br><br>
-        Пример:<br>
-        <code>https://web-proxy.zhuk2202.workers.dev/?url={url}</code>
+        <input type="text" id="proxyTemplateInput" class="input-field" />
       </div>
     </div>
   </aside>
@@ -437,6 +474,64 @@
     const auth = getAuth(app);
     const db = getFirestore(app);
 
+    // --- LOKAL INDEXEDDB ДЛЯ ОФЛАЙН-СТРАНИЦ И MP3 ---
+    const DB_NAME = 'ProxyOfflineStorage';
+    const STORE_NAME = 'pages';
+
+    function openOfflineDB() {
+      return new Promise((resolve, reject) => {
+        const req = indexedDB.open(DB_NAME, 1);
+        req.onupgradeneeded = () => {
+          if (!req.result.objectStoreNames.contains(STORE_NAME)) {
+            req.result.createObjectStore(STORE_NAME, { keyPath: 'siteId' });
+          }
+        };
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+      });
+    }
+
+    async function saveOfflinePackage(pkg) {
+      const idb = await openOfflineDB();
+      return new Promise((resolve, reject) => {
+        const tx = idb.transaction(STORE_NAME, 'readwrite');
+        tx.objectStore(STORE_NAME).put(pkg);
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+      });
+    }
+
+    async function getOfflinePackage(siteId) {
+      const idb = await openOfflineDB();
+      return new Promise((resolve, reject) => {
+        const tx = idb.transaction(STORE_NAME, 'readonly');
+        const req = tx.objectStore(STORE_NAME).get(siteId);
+        req.onsuccess = () => resolve(req.result || null);
+        req.onerror = () => reject(req.error);
+      });
+    }
+
+    async function deleteOfflinePackage(siteId) {
+      const idb = await openOfflineDB();
+      return new Promise((resolve, reject) => {
+        const tx = idb.transaction(STORE_NAME, 'readwrite');
+        tx.objectStore(STORE_NAME).delete(siteId);
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+      });
+    }
+
+    async function getAllOfflineIds() {
+      const idb = await openOfflineDB();
+      return new Promise((resolve) => {
+        const tx = idb.transaction(STORE_NAME, 'readonly');
+        const req = tx.objectStore(STORE_NAME).getAllKeys();
+        req.onsuccess = () => resolve(req.result || []);
+        req.onerror = () => resolve([]);
+      });
+    }
+
+    // --- СОСТОЯНИЕ ---
     const defaultProxies = [
       {
         id: 'proxy-cf-1',
@@ -445,40 +540,34 @@
       },
       {
         id: 'proxy-direct',
-        name: 'Прямое открытие (Без прокси)',
+        name: 'Прямое открытие',
         template: '{raw_url}'
       }
     ];
 
     const defaultSites = [
       {
-        id: 'site-1',
-        title: 'Example Domain (Тест)',
-        group: 'Проверка',
-        url: 'https://example.com',
+        id: 'site-book-1',
+        title: 'Никогде (Задверье) - Нил Гейман',
+        group: 'Аудиокниги',
+        url: 'https://knigavuhe.org/book/nikogde-zadvere/',
         proxyId: 'proxy-cf-1',
-        openMode: 'iframe'
-      },
-      {
-        id: 'site-2',
-        title: 'Wikipedia',
-        group: 'Справка',
-        url: 'https://ru.wikipedia.org',
-        proxyId: 'proxy-cf-1',
-        openMode: 'iframe'
+        openMode: 'auto',
+        savedState: { lastUrl: '', scrollY: 0, audioIndex: 0, currentTime: 0 }
       }
     ];
 
     let currentUser = null;
     let unsubscribeSnapshot = null;
     let saveTimeout = null;
-    let currentLoadedTargetUrl = '';
+    let offlineIdsCache = [];
+    let currentOfflineAudioUrls = [];
+    let currentOfflineTrackIdx = 0;
 
     let state = {
       activeTab: 'sites',
       activeSiteId: defaultSites[0].id,
       editingProxyId: defaultProxies[0].id,
-      selectedProxyId: defaultProxies[0].id,
       proxies: defaultProxies,
       sites: defaultSites
     };
@@ -496,10 +585,20 @@
     const sitesListEl = document.getElementById('sitesList');
     const proxiesListEl = document.getElementById('proxiesList');
 
-    const activeProxySelect = document.getElementById('activeProxySelect');
-    const urlInput = document.getElementById('urlInput');
+    const activePageTitle = document.getElementById('activePageTitle');
+    const activePageProgress = document.getElementById('activePageProgress');
+    const downloadOfflineBtn = document.getElementById('downloadOfflineBtn');
+    const downloadOfflineLabel = document.getElementById('downloadOfflineLabel');
+
     const proxyFrame = document.getElementById('proxyFrame');
     const emptyViewport = document.getElementById('emptyViewport');
+    const offlineReaderView = document.getElementById('offlineReaderView');
+    const offlineAudioBox = document.getElementById('offlineAudioBox');
+    const offlineAudioPlayer = document.getElementById('offlineAudioPlayer');
+    const offlineTrackTitle = document.getElementById('offlineTrackTitle');
+    const offlineTracksList = document.getElementById('offlineTracksList');
+    const offlineTextBody = document.getElementById('offlineTextBody');
+
     const statusRouteLabel = document.getElementById('statusRouteLabel');
     const statusModeLabel = document.getElementById('statusModeLabel');
 
@@ -514,6 +613,16 @@
     const proxyNameInput = document.getElementById('proxyNameInput');
     const proxyTemplateInput = document.getElementById('proxyTemplateInput');
 
+    function formatTime(sec) {
+      if (!sec || isNaN(sec)) return '00:00';
+      const s = Math.floor(sec);
+      const h = Math.floor(s / 3600);
+      const m = Math.floor((s % 3600) / 60);
+      const r = s % 60;
+      if (h > 0) return `${h}:${String(m).padStart(2, '0')}:${String(r).padStart(2, '0')}`;
+      return `${String(m).padStart(2, '0')}:${String(r).padStart(2, '0')}`;
+    }
+
     function normalizeState(raw) {
       const data = raw || {};
       if (!Array.isArray(data.proxies) || data.proxies.length === 0) {
@@ -522,14 +631,15 @@
       if (!Array.isArray(data.sites) || data.sites.length === 0) {
         data.sites = JSON.parse(JSON.stringify(defaultSites));
       }
+      data.sites.forEach(s => {
+        if (!s.savedState) s.savedState = { lastUrl: '', scrollY: 0, audioIndex: 0, currentTime: 0 };
+        if (!s.openMode) s.openMode = 'auto';
+      });
       if (!data.activeSiteId || !data.sites.some(s => s.id === data.activeSiteId)) {
         data.activeSiteId = data.sites[0].id;
       }
       if (!data.editingProxyId || !data.proxies.some(p => p.id === data.editingProxyId)) {
         data.editingProxyId = data.proxies[0].id;
-      }
-      if (!data.selectedProxyId || !data.proxies.some(p => p.id === data.selectedProxyId)) {
-        data.selectedProxyId = data.proxies[0].id;
       }
       if (!data.activeTab) data.activeTab = 'sites';
       return data;
@@ -549,44 +659,248 @@
 
     function buildProxiedUrl(targetUrl, proxyObj) {
       let cleanUrl = targetUrl.trim();
-      if (!/^https?:\/\//i.test(cleanUrl)) {
-        cleanUrl = 'https://' + cleanUrl;
-      }
+      if (!/^https?:\/\//i.test(cleanUrl)) cleanUrl = 'https://' + cleanUrl;
       const tpl = (proxyObj && proxyObj.template) ? proxyObj.template : '{raw_url}';
-      if (tpl.includes('{raw_url}')) {
-        return tpl.replace('{raw_url}', cleanUrl);
-      }
+      if (tpl.includes('{raw_url}')) return tpl.replace('{raw_url}', cleanUrl);
       return tpl.replace('{url}', encodeURIComponent(cleanUrl));
     }
 
-    function navigateToUrl(rawTargetUrl, proxyIdOverride = null, openMode = 'iframe') {
-      if (!rawTargetUrl || !rawTargetUrl.trim()) return;
+    function updateHeaderProgress(site) {
+      activePageTitle.textContent = site.title;
+      const st = site.savedState || {};
+      const isOffline = offlineIdsCache.includes(site.id);
+      downloadOfflineBtn.classList.toggle('offline-ready', isOffline);
+      downloadOfflineLabel.textContent = isOffline ? 'Скачано (Офлайн)' : 'Скачать офлайн';
 
-      let normalizedUrl = rawTargetUrl.trim();
-      if (!/^https?:\/\//i.test(normalizedUrl)) {
-        normalizedUrl = 'https://' + normalizedUrl;
-      }
-
-      const proxyId = proxyIdOverride || state.selectedProxyId;
-      state.selectedProxyId = proxyId;
-      activeProxySelect.value = proxyId;
-
-      const proxy = getProxyById(proxyId);
-      const finalUrl = buildProxiedUrl(normalizedUrl, proxy);
-
-      currentLoadedTargetUrl = normalizedUrl;
-      urlInput.value = normalizedUrl;
-      statusRouteLabel.textContent = `${proxy.name} -> ${normalizedUrl}`;
-      statusModeLabel.textContent = openMode === 'newtab' ? 'Режим: Новая вкладка' : 'Режим: Iframe';
-
-      if (openMode === 'newtab') {
-        window.open(finalUrl, '_blank', 'noopener,noreferrer');
+      if (st.currentTime > 0) {
+        activePageProgress.textContent = `Глава ${(st.audioIndex || 0) + 1} • Остановились на ${formatTime(st.currentTime)}`;
+      } else if (st.scrollY > 0) {
+        activePageProgress.textContent = `Прокрутка: ${Math.round(st.scrollY)} px`;
       } else {
-        emptyViewport.classList.add('hidden');
+        activePageProgress.textContent = isOffline ? 'Доступно без интернета' : 'Начало страницы';
+      }
+    }
+
+    // --- ОТКРЫТИЕ СТРАНИЦЫ (ОНЛАЙН ИЛИ ОФЛАЙН) ---
+    async function openSite(site) {
+      if (!site) return;
+      updateHeaderProgress(site);
+
+      // Освобождаем старые blob-ссылки
+      currentOfflineAudioUrls.forEach(u => URL.revokeObjectURL(u));
+      currentOfflineAudioUrls = [];
+
+      const offlinePkg = await getOfflinePackage(site.id);
+      const mode = site.openMode || 'auto';
+      const useOffline = (mode === 'offline') || (mode === 'auto' && offlinePkg !== null);
+
+      emptyViewport.classList.add('hidden');
+
+      if (useOffline && offlinePkg) {
+        // ОФЛАЙН РЕЖИМ
+        proxyFrame.classList.add('hidden');
+        proxyFrame.src = 'about:blank';
+        offlineReaderView.classList.remove('hidden');
+
+        statusRouteLabel.textContent = `Офлайн-память: ${site.title}`;
+        statusModeLabel.textContent = `Треков: ${offlinePkg.tracks.length}`;
+
+        renderOfflinePlayer(site, offlinePkg);
+      } else {
+        // ОНЛАЙН РЕЖИМ ЧЕРЕЗ ПРОКСИ
+        offlineReaderView.classList.add('hidden');
+        offlineAudioPlayer.pause();
         proxyFrame.classList.remove('hidden');
+
+        const proxy = getProxyById(site.proxyId);
+        const targetToOpen = (site.savedState && site.savedState.lastUrl) ? site.savedState.lastUrl : site.url;
+        const finalUrl = buildProxiedUrl(targetToOpen, proxy);
+
+        statusRouteLabel.textContent = `${proxy.name} -> ${targetToOpen}`;
+        statusModeLabel.textContent = 'Режим: Онлайн Proxy';
         proxyFrame.src = finalUrl;
       }
     }
+
+    // Восстановление позиции после загрузки iframe
+    proxyFrame.addEventListener('load', () => {
+      const site = getActiveSite();
+      if (site && site.savedState) {
+        try {
+          proxyFrame.contentWindow.postMessage({
+            type: 'RESTORE_PROXY_STATE',
+            state: site.savedState
+          }, '*');
+        } catch (e) {}
+      }
+    });
+
+    // Приём обновлений прогресса из iframe
+    window.addEventListener('message', (e) => {
+      if (e.data && e.data.type === 'PROXY_STATE_UPDATE') {
+        const site = getActiveSite();
+        if (!site) return;
+        site.savedState = {
+          lastUrl: e.data.url || site.url,
+          scrollY: e.data.scrollY || 0,
+          audioIndex: e.data.audioIndex >= 0 ? e.data.audioIndex : (site.savedState?.audioIndex || 0),
+          currentTime: e.data.currentTime || 0
+        };
+        updateHeaderProgress(site);
+        saveState();
+      }
+    });
+
+    // --- ОФЛАЙН ПЛЕЕР И ЗАКАЧКА ---
+    function renderOfflinePlayer(site, pkg) {
+      offlineTracksList.innerHTML = '';
+      offlineTextBody.innerHTML = pkg.cleanTextHtml || '<p>Текст страницы сохранён.</p>';
+
+      if (!pkg.tracks || pkg.tracks.length === 0) {
+        offlineAudioBox.classList.add('hidden');
+        return;
+      }
+
+      offlineAudioBox.classList.remove('hidden');
+      currentOfflineAudioUrls = pkg.tracks.map(t => URL.createObjectURL(t.blob));
+
+      const savedIdx = Math.min(site.savedState?.audioIndex || 0, pkg.tracks.length - 1);
+      const savedTime = site.savedState?.currentTime || 0;
+
+      function selectTrack(idx, startTime = 0, autoPlay = false) {
+        currentOfflineTrackIdx = idx;
+        offlineTrackTitle.textContent = pkg.tracks[idx].title;
+        offlineAudioPlayer.src = currentOfflineAudioUrls[idx];
+        offlineAudioPlayer.currentTime = startTime;
+
+        Array.from(offlineTracksList.children).forEach((el, i) => {
+          el.classList.toggle('active', i === idx);
+        });
+
+        if (autoPlay) offlineAudioPlayer.play().catch(() => {});
+      }
+
+      pkg.tracks.forEach((track, idx) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'track-item' + (idx === savedIdx ? ' active' : '');
+        btn.innerHTML = `<span>🎧 ${escapeHtml(track.title)}</span><span style="font-size:11px;color:#64748b;">${(track.blob.size / (1024 * 1024)).toFixed(1)} МБ</span>`;
+        btn.onclick = () => selectTrack(idx, 0, true);
+        offlineTracksList.appendChild(btn);
+      });
+
+      selectTrack(savedIdx, savedTime, false);
+    }
+
+    // Сохранение прогресса офлайн-аудиоплеера
+    let lastOfflineSave = 0;
+    offlineAudioPlayer.addEventListener('timeupdate', () => {
+      const now = Date.now();
+      if (now - lastOfflineSave < 4000) return;
+      lastOfflineSave = now;
+      const site = getActiveSite();
+      if (!site) return;
+      site.savedState.audioIndex = currentOfflineTrackIdx;
+      site.savedState.currentTime = offlineAudioPlayer.currentTime;
+      updateHeaderProgress(site);
+      saveState();
+    });
+
+    offlineAudioPlayer.addEventListener('pause', () => {
+      const site = getActiveSite();
+      if (!site) return;
+      site.savedState.audioIndex = currentOfflineTrackIdx;
+      site.savedState.currentTime = offlineAudioPlayer.currentTime;
+      updateHeaderProgress(site);
+      saveState();
+    });
+
+    offlineAudioPlayer.addEventListener('ended', () => {
+      if (currentOfflineTrackIdx + 1 < currentOfflineAudioUrls.length) {
+        const nextIdx = currentOfflineTrackIdx + 1;
+        offlineTracksList.children[nextIdx]?.click();
+      }
+    });
+
+    // Функция скачивания страницы и всех аудиофайлов на ней
+    downloadOfflineBtn.addEventListener('click', async () => {
+      const site = getActiveSite();
+      if (!site) return;
+
+      downloadOfflineBtn.disabled = true;
+      downloadOfflineLabel.textContent = 'Анализ страницы...';
+      statusRouteLabel.textContent = 'Загрузка HTML через прокси...';
+
+      try {
+        const proxy = getProxyById(site.proxyId);
+        const pageProxyUrl = buildProxiedUrl(site.url, proxy);
+        const res = await fetch(pageProxyUrl);
+        if (!res.ok) throw new Error(`Ошибка загрузки страницы: HTTP ${res.status}`);
+
+        const html = await res.text();
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+
+        // Извлекаем читаемый текст
+        doc.querySelectorAll('script, style, nav, footer, iframe').forEach(el => el.remove());
+        const cleanTextHtml = doc.body ? doc.body.innerHTML : '';
+
+        // Ищем все ссылки на MP3 / M4A / OGG в HTML (включая JSON-плейлисты knigavuhe)
+        const audioRegex = /(https?:\/\/[^"'\\\s<>]+\.(?:mp3|m4a|ogg|aac)(?:\?[^"'\\\s<>]*)?)/gi;
+        const rawMatches = [...html.matchAll(audioRegex)].map(m => m[1].replace(/\\\//g, '/'));
+        const uniqueAudioUrls = [...new Set(rawMatches)];
+
+        const tracks = [];
+        for (let i = 0; i < uniqueAudioUrls.length; i++) {
+          const audioUrl = uniqueAudioUrls[i];
+          downloadOfflineLabel.textContent = `Аудио ${i + 1}/${uniqueAudioUrls.length}...`;
+          statusRouteLabel.textContent = `Скачивание трека ${i + 1} из ${uniqueAudioUrls.length}...`;
+
+          try {
+            const audioRes = await fetch(buildProxiedUrl(audioUrl, proxy));
+            if (audioRes.ok) {
+              const blob = await audioRes.blob();
+              tracks.push({
+                title: `Глава / Трек ${i + 1}`,
+                originalUrl: audioUrl,
+                blob: blob
+              });
+            }
+          } catch (e) {
+            console.warn('Не удалось скачать трек:', audioUrl, e);
+          }
+        }
+
+        await saveOfflinePackage({
+          siteId: site.id,
+          savedAt: Date.now(),
+          cleanTextHtml: cleanTextHtml,
+          tracks: tracks
+        });
+
+        offlineIdsCache = await getAllOfflineIds();
+        renderSitesList();
+        updateHeaderProgress(site);
+        alert(`Готово! Сохранено в память устройства (аудиофайлов: ${tracks.length}).`);
+        openSite(site);
+      } catch (err) {
+        alert('Ошибка закачки: ' + err.message);
+      } finally {
+        downloadOfflineBtn.disabled = false;
+        updateHeaderProgress(site);
+      }
+    });
+
+    document.getElementById('clearOfflineCacheBtn').addEventListener('click', async () => {
+      const site = getActiveSite();
+      if (!site) return;
+      await deleteOfflinePackage(site.id);
+      offlineIdsCache = await getAllOfflineIds();
+      renderSitesList();
+      updateHeaderProgress(site);
+      alert('Офлайн-копия удалена.');
+      openSite(site);
+    });
 
     // --- АВТОРИЗАЦИЯ ---
     document.getElementById('emailLoginForm').addEventListener('submit', async (e) => {
@@ -627,13 +941,14 @@
       if (user) {
         authScreen.classList.add('hidden');
         userEmailLabel.textContent = user.email;
+        offlineIdsCache = await getAllOfflineIds();
         await initCloudSync(user.uid);
       } else {
         authScreen.classList.remove('hidden');
       }
     });
 
-    // --- FIRESTORE (отдельная коллекция proxy_workspaces) ---
+    // --- FIRESTORE ---
     async function initCloudSync(uid) {
       const userDocRef = doc(db, 'proxy_workspaces', uid);
       syncStatus.textContent = '↻ Загрузка...';
@@ -644,6 +959,7 @@
         await setDoc(userDocRef, state);
       }
 
+      let isFirstLoad = true;
       unsubscribeSnapshot = onSnapshot(userDocRef, (snapshot) => {
         if (snapshot.metadata.hasPendingWrites) return;
         if (snapshot.exists()) {
@@ -651,6 +967,10 @@
           renderAll();
           syncStatus.textContent = '● Синхронизировано';
           syncStatus.className = 'sync-badge';
+          if (isFirstLoad) {
+            isFirstLoad = false;
+            openSite(getActiveSite());
+          }
         }
       });
     }
@@ -670,7 +990,7 @@
           syncStatus.textContent = '✕ Ошибка облака';
           syncStatus.className = 'sync-badge err';
         }
-      }, 400);
+      }, 600);
     }
 
     // --- ШТОРКИ ---
@@ -708,7 +1028,7 @@
     document.getElementById('closeRightBtn').addEventListener('click', closeDrawers);
     mobileBackdrop.addEventListener('click', closeDrawers);
 
-    // --- РЕНДЕР ИНТЕРФЕЙСА ---
+    // --- РЕНДЕР ---
     function renderAll() {
       const isSitesTab = state.activeTab === 'sites';
       tabSitesBtn.classList.toggle('active', isSitesTab);
@@ -719,38 +1039,30 @@
       siteSettingsBox.classList.toggle('hidden', !isSitesTab);
       proxySettingsBox.classList.toggle('hidden', isSitesTab);
 
-      renderProxySelectors();
-      renderSitesList();
-      renderProxiesList();
-
-      if (isSitesTab) {
-        renderSiteEditor();
-      } else {
-        renderProxyEditor();
-      }
-    }
-
-    function renderProxySelectors() {
-      const optionsHtml = state.proxies
+      siteProxySelect.innerHTML = state.proxies
         .map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`)
         .join('');
 
-      activeProxySelect.innerHTML = optionsHtml;
-      activeProxySelect.value = state.selectedProxyId;
+      renderSitesList();
+      renderProxiesList();
 
-      siteProxySelect.innerHTML = optionsHtml;
+      if (isSitesTab) renderSiteEditor();
+      else renderProxyEditor();
     }
 
     function renderSitesList() {
       sitesListEl.innerHTML = '';
       state.sites.forEach(site => {
         const isActive = state.activeTab === 'sites' && site.id === state.activeSiteId;
-        const proxy = getProxyById(site.proxyId);
+        const isOffline = offlineIdsCache.includes(site.id);
+        const st = site.savedState || {};
+        const posLabel = st.currentTime > 0 ? ` • ${formatTime(st.currentTime)}` : '';
+
         const btn = document.createElement('button');
         btn.className = 'list-item' + (isActive ? ' active' : '');
         btn.innerHTML = `
-          <span class="list-item-title">${site.openMode === 'newtab' ? '↗ ' : '🌐 '}${escapeHtml(site.title)}</span>
-          <span class="list-item-sub">${escapeHtml(site.group || 'Общее')} • ${escapeHtml(proxy.name)}</span>
+          <span class="list-item-title">${isOffline ? '✅ ' : '🎧 '}${escapeHtml(site.title)}</span>
+          <span class="list-item-sub">${escapeHtml(site.group || 'Общее')}${posLabel}</span>
         `;
         btn.onclick = () => {
           state.activeSiteId = site.id;
@@ -758,7 +1070,7 @@
           saveState();
           renderAll();
           closeDrawers();
-          navigateToUrl(site.url, site.proxyId, site.openMode || 'iframe');
+          openSite(site);
         };
         sitesListEl.appendChild(btn);
       });
@@ -790,7 +1102,8 @@
       if (document.activeElement !== siteGroupInput) siteGroupInput.value = site.group || '';
       if (document.activeElement !== siteUrlInput) siteUrlInput.value = site.url;
       siteProxySelect.value = site.proxyId || state.proxies[0].id;
-      siteOpenModeSelect.value = site.openMode || 'iframe';
+      siteOpenModeSelect.value = site.openMode || 'auto';
+      updateHeaderProgress(site);
     }
 
     function renderProxyEditor() {
@@ -800,64 +1113,50 @@
       if (document.activeElement !== proxyTemplateInput) proxyTemplateInput.value = proxy.template;
     }
 
-    // --- СОБЫТИЯ УПРАВЛЕНИЯ ---
+    // --- СОБЫТИЯ ---
     tabSitesBtn.addEventListener('click', () => { state.activeTab = 'sites'; renderAll(); });
     tabProxiesBtn.addEventListener('click', () => { state.activeTab = 'proxies'; renderAll(); });
 
-    document.getElementById('urlForm').addEventListener('submit', (e) => {
-      e.preventDefault();
-      navigateToUrl(urlInput.value, activeProxySelect.value, 'iframe');
-    });
+    document.getElementById('reloadBtn').addEventListener('click', () => openSite(getActiveSite()));
 
-    activeProxySelect.addEventListener('change', (e) => {
-      state.selectedProxyId = e.target.value;
-      saveState();
-      if (currentLoadedTargetUrl) {
-        navigateToUrl(currentLoadedTargetUrl, state.selectedProxyId, 'iframe');
-      }
-    });
-
-    document.getElementById('reloadBtn').addEventListener('click', () => {
-      if (currentLoadedTargetUrl) {
-        navigateToUrl(currentLoadedTargetUrl, activeProxySelect.value, 'iframe');
-      }
-    });
-
-    document.getElementById('openExternalBtn').addEventListener('click', () => {
-      const target = urlInput.value.trim() || currentLoadedTargetUrl;
-      if (!target) return;
-      const proxy = getProxyById(activeProxySelect.value);
-      window.open(buildProxiedUrl(target, proxy), '_blank', 'noopener,noreferrer');
-    });
-
-    // Управление закладками
     document.getElementById('addSiteBtn').addEventListener('click', () => {
       const newSite = {
         id: 'site-' + Date.now(),
-        title: `Новая страница #${state.sites.length + 1}`,
-        group: 'Общее',
-        url: urlInput.value.trim() || 'https://example.com',
-        proxyId: activeProxySelect.value || state.proxies[0].id,
-        openMode: 'iframe'
+        title: `Новая книга #${state.sites.length + 1}`,
+        group: 'Аудиокниги',
+        url: 'https://knigavuhe.org/',
+        proxyId: state.proxies[0].id,
+        openMode: 'auto',
+        savedState: { lastUrl: '', scrollY: 0, audioIndex: 0, currentTime: 0 }
       };
       state.sites.unshift(newSite);
       state.activeSiteId = newSite.id;
       state.activeTab = 'sites';
       saveState();
       renderAll();
+      if (window.innerWidth < 1024) {
+        closeDrawers();
+        rightSidebar.classList.add('open');
+        mobileBackdrop.classList.remove('hidden');
+      }
     });
 
-    document.getElementById('deleteSiteBtn').addEventListener('click', () => {
+    document.getElementById('deleteSiteBtn').addEventListener('click', async () => {
       if (state.sites.length <= 1) return alert('Нельзя удалить последнюю закладку.');
-      if (!confirm('Удалить эту страницу из списка?')) return;
-      state.sites = state.sites.filter(s => s.id !== state.activeSiteId);
+      if (!confirm('Удалить эту страницу и её офлайн-данные?')) return;
+      const delId = state.activeSiteId;
+      await deleteOfflinePackage(delId);
+      offlineIdsCache = await getAllOfflineIds();
+      state.sites = state.sites.filter(s => s.id !== delId);
       state.activeSiteId = state.sites[0].id;
       saveState();
       renderAll();
+      openSite(getActiveSite());
     });
 
     siteTitleInput.addEventListener('input', (e) => {
       getActiveSite().title = e.target.value || 'Без названия';
+      activePageTitle.textContent = getActiveSite().title;
       saveState();
       renderSitesList();
     });
@@ -869,34 +1168,32 @@
     });
 
     siteUrlInput.addEventListener('input', (e) => {
-      getActiveSite().url = e.target.value.trim();
+      const site = getActiveSite();
+      site.url = e.target.value.trim();
+      site.savedState = { lastUrl: '', scrollY: 0, audioIndex: 0, currentTime: 0 };
       saveState();
     });
 
     siteProxySelect.addEventListener('change', (e) => {
       getActiveSite().proxyId = e.target.value;
       saveState();
-      renderSitesList();
     });
 
     siteOpenModeSelect.addEventListener('change', (e) => {
       getActiveSite().openMode = e.target.value;
       saveState();
-      renderSitesList();
     });
 
     document.getElementById('applySiteBtn').addEventListener('click', () => {
-      const site = getActiveSite();
       closeDrawers();
-      navigateToUrl(site.url, site.proxyId, site.openMode || 'iframe');
+      openSite(getActiveSite());
     });
 
-    // Управление прокси
     document.getElementById('addProxyBtn').addEventListener('click', () => {
       const newProxy = {
         id: 'proxy-' + Date.now(),
         name: `Прокси #${state.proxies.length + 1}`,
-        template: 'https://your-worker.workers.dev/?url={url}'
+        template: 'https://web-proxy.zhuk2202.workers.dev/?url={url}'
       };
       state.proxies.push(newProxy);
       state.editingProxyId = newProxy.id;
@@ -907,11 +1204,9 @@
 
     document.getElementById('deleteProxyBtn').addEventListener('click', () => {
       if (state.proxies.length <= 1) return alert('Должен остаться хотя бы один прокси.');
-      if (!confirm('Удалить этот прокси-сервер?')) return;
       const delId = state.editingProxyId;
       state.proxies = state.proxies.filter(p => p.id !== delId);
       state.editingProxyId = state.proxies[0].id;
-      if (state.selectedProxyId === delId) state.selectedProxyId = state.proxies[0].id;
       saveState();
       renderAll();
     });
@@ -920,7 +1215,6 @@
       getEditingProxy().name = e.target.value || 'Прокси';
       saveState();
       renderProxiesList();
-      renderProxySelectors();
     });
 
     proxyTemplateInput.addEventListener('input', (e) => {
@@ -929,7 +1223,6 @@
       renderProxiesList();
     });
 
-    // Экспорт / Импорт
     document.getElementById('exportBtn').addEventListener('click', async (e) => {
       const btn = e.currentTarget;
       await navigator.clipboard.writeText(JSON.stringify(state, null, 2));
