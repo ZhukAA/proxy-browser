@@ -31,6 +31,7 @@ jobs:
           cp icon.png www/icon.png
           cp icon.png assets/icon-only.png
           cp icon.png assets/icon-foreground.png
+          cp icon.png assets/icon-background.png
 
       - name: Install Capacitor and add Android platform
         run: |
